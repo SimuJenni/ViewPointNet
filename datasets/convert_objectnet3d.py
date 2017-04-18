@@ -105,7 +105,7 @@ def to_tfrecord(image_ids_file, dest_dir, source_dir):
                     writer.write(example.SerializeToString())
 
                     # Update number of examples per class
-                    num_per_class[e['class_name']] = e['class_name'] + 1
+                    num_per_class[e['class_name']] += 1
 
     print(num_per_class)
     dataset_utils.save_obj(num_per_class, dest_dir, 'num_per_class')
