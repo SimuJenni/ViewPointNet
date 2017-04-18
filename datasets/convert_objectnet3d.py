@@ -90,7 +90,7 @@ def to_tfrecord(image_ids_file, dest_dir, source_dir):
                     sys.stdout.flush()
 
                     # Get image, edge-map and cartooned image
-                    img = misc.imread(e['image_path'])
+                    img = misc.imread(e['image_path'], mode='RGB')
 
                     # Encode the images
                     image_str = coder.encode_jpeg(img)
