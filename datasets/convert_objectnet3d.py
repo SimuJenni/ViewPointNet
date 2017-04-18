@@ -95,8 +95,8 @@ def to_tfrecord(image_ids_file, dest_dir, source_dir):
 
                     # Build example
                     print(e['im_size'])
-                    example = dataset_utils.to_tfexample(image_str, 'jpg', e['im_size'], e['bbox'], e['azimuth'],
-                                                         e['elevation'], e['theta'])
+                    example = dataset_utils.to_tfexample(image_str, 'jpg', e['im_size'].tolist(), e['bbox'].tolist(),
+                                                         e['azimuth'], e['elevation'], e['theta'])
                     # Write example
                     out_fname = get_output_filename(dest_dir, e['class_name'])
                     writer = tf.python_io.TFRecordWriter(out_fname)
