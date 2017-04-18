@@ -68,6 +68,8 @@ def parse_mat(mat_file, data_path):
 
 
 def to_tfrecord(image_ids_file, dest_dir, source_dir):
+    if not tf.gfile.Exists(dest_dir):
+        tf.gfile.MakeDirs(dest_dir)
     with open(image_ids_file) as f:
         img_ids = f.readlines()
 
