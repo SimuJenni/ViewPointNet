@@ -96,7 +96,6 @@ def to_tfrecord(image_ids_file, dest_dir, source_dir):
                     image_str = coder.encode_jpeg(img)
 
                     # Build example
-                    print(e['im_size'])
                     example = dataset_utils.to_tfexample(image_str, 'jpg', e['im_size'].tolist(), e['bbox'].tolist(),
                                                          e['azimuth'], e['elevation'], e['theta'])
                     # Write example
