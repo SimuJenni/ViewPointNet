@@ -75,6 +75,7 @@ def to_tfrecord(image_ids_file, dest_dir, source_dir):
 
     num_images = len(img_ids)
     num_per_class = {cn: 0 for cn in CLASSES}
+    writers = {c: tf.python_io.TFRecordWriter(get_output_filename(dest_dir, c)) for c in CLASSES}
 
     with tf.Graph().as_default():
         coder = dataset_utils.ImageCoder()
@@ -99,9 +100,7 @@ def to_tfrecord(image_ids_file, dest_dir, source_dir):
                     example = dataset_utils.to_tfexample(image_str, 'jpg', e['im_size'].tolist(), e['bbox'].tolist(),
                                                          e['azimuth'], e['elevation'], e['theta'])
                     # Write example
-                    out_fname = get_output_filename(dest_dir, e['class_name'])
-                    writer = tf.python_io.TFRecordWriter(out_fname)
-                    writer.write(example.SerializeToString())
+                    writers[e['class_name']].write(example.SerializeToString())
 
                     # Update number of examples per class
                     num_per_class[e['class_name']] += 1
