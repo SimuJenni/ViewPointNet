@@ -18,6 +18,7 @@ fname = record['filename'][0, 0][0]
 
 # Get the image size
 im_size = record['imgsize'][0, 0][0]
+print im_size.shape
 
 # Get all the objects
 objects = mat['record']['objects'][0, 0]
