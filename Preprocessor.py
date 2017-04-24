@@ -27,6 +27,7 @@ class Preprocessor:
 
         box = tf.to_int32(box)
         image = tf.image.crop_to_bounding_box(img, box[0], box[1], box[2]-box[0], box[3]-box[1])
+        image = tf.expand_dims(image, axis=0)
         image = tf.image.resize_bilinear(image, [self.target_shape[0], self.target_shape[1]], align_corners=False)
         image = tf.squeeze(image, [0])
         image.set_shape([self.target_shape[0], self.target_shape[1], 3])
