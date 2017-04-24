@@ -42,18 +42,15 @@ class Dataset:
     def get_items_to_handlers(self):
         pass
 
-    def get_split_size(self, split_name):
-        return self.SPLITS_TO_SIZES[split_name]
-
     def format_labels(self, labels):
         return slim.one_hot_encoding(labels, self.num_classes)
 
-    def get_data_files(self, data_dir, split_name):
-        tf_record_pattern = os.path.join(data_dir, self.file_pattern % split_name)
+    def get_data_files(self, split_name):
+        tf_record_pattern = os.path.join(self.data_dir, self.file_pattern % split_name)
         data_files = tf.gfile.Glob(tf_record_pattern)
         return data_files
 
-    def get_split(self, split_name, data_dir=None):
+    def get_split(self, split_name):
         """Gets a dataset tuple with instructions for reading ImageNet.
         Args:
           split_name: A train/test split name.
@@ -66,12 +63,9 @@ class Dataset:
         if split_name not in self.SPLITS_TO_SIZES:
             raise ValueError('split name %s was not recognized.' % split_name)
 
-        if not data_dir:
-            data_dir = self.data_dir
-
-        data_files = self.get_data_files(split_name, data_dir)
+        data_files = self.get_data_files(split_name)
         if not data_files:
-            print('No files found for dataset at %s' % data_dir)
+            print('No files found for dataset at %s' % self.data_dir)
 
         # Build the decoder
         keys_to_features = self.get_keys_to_features()

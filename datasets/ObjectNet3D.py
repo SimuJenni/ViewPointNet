@@ -2,18 +2,22 @@ import tensorflow as tf
 import os
 
 from Dataset import Dataset
+from dataset_utils import load_obj
 
 slim = tf.contrib.slim
 from constants import OBJECTNET3D_TF_DATADIR
 
 
-class VOC2007(Dataset):
+class ObjectNet3D(Dataset):
 
     SPLITS_TO_SIZES = {'train': 2501, 'val': 2510, 'trainval': 5011, 'test': 4952}
 
     ITEMS_TO_DESCRIPTIONS = {
         'image': 'A color image.',
         'label': 'A single integer between 0 and 19 or -1 for unlabeled',
+        'im_size': '(h,w) indicating the size of the image',
+        'bbox': 'A list of bounding box coordinates',
+        'viewpoint': 'A list of viewpoint coordinates [azimuth, elevation, theta]'
     }
 
     def __init__(self, class_name):
@@ -24,8 +28,8 @@ class VOC2007(Dataset):
         self.name = 'ObjectNet3D'
         self.is_multilabel = True
 
-    def get_data_files(self, data_dir, split_name):
-        tf_record_pattern = os.path.join(data_dir, '%s/%s/ON3D_%s.tfrecord' % (data_dir, split_name, self.class_name))
+    def get_data_files(self, split_name):
+        tf_record_pattern = os.path.join(self.data_dir, '%s/ON3D_%s.tfrecord' % (split_name, self.class_name))
         data_files = tf.gfile.Glob(tf_record_pattern)
         return data_files
 
@@ -57,8 +61,13 @@ class VOC2007(Dataset):
     def get_testset(self):
         return self.get_split('test')
 
-    def get_num_train(self):
-        return self.SPLITS_TO_SIZES['trainval']
+    def get_num_dataset(self, split_name):
+        dict_dir = os.path.join(self.data_dir, split_name)
+        num_per_class = load_obj('num_per_class', dict_dir)
+        return num_per_class[self.class_name]
 
     def get_num_test(self):
-        return self.SPLITS_TO_SIZES['test']
+        return self.get_num_dataset('test')
+
+    def get_num_train(self):
+        return self.get_num_dataset('trainval')
