@@ -167,7 +167,7 @@ class VPNetTrainer:
 
                 # Create the model
                 dec_im1, dec_im2, dec_ed1, dec_ed2, disc_out1, disc_out2 = \
-                    self.model.net(self, imgs1, imgs2, vps1, vps2, reuse=None, training=True)
+                    self.model.net(imgs1, imgs2, vps1, vps2, reuse=None, training=True)
 
                 # Compute losses
                 disc_loss = self.discriminator_loss(disc_out1, disc_out2, labels_disc)
