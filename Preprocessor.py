@@ -21,7 +21,7 @@ class Preprocessor:
         im_size = tf.to_float(im_size)
         box = tf.reshape(box, [1, 1, 4])
         print(box.get_shape().as_list())
-        box = tf.div(box, [im_size[1], im_size[0], im_size[1], im_size[0]])
+        box = tf.div(box, [im_size[0], im_size[1], im_size[0], im_size[1]])
         image = distort_image(img, box, self.target_shape[0], self.target_shape[1],
                               self.aspect_ratio_range, self.area_range)
 
