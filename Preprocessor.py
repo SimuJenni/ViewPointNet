@@ -17,12 +17,18 @@ class Preprocessor:
 
     def process_train(self, img, box, im_size):
         # Select random crops
-        im_size = tf.to_float(im_size)
-        box = tf.reshape(box, [1, 1, 4])
-        print(box.get_shape().as_list())
-        box = tf.div(box, [im_size[0], im_size[1], im_size[0], im_size[1]])
-        image = distort_image(img, box, self.target_shape[0], self.target_shape[1],
-                              self.aspect_ratio_range, self.area_range)
+
+        # im_size = tf.to_float(im_size)
+        # box = tf.reshape(box, [1, 1, 4])
+        # print(box.get_shape().as_list())
+        # box = tf.div(box, [im_size[1], im_size[0], im_size[1], im_size[0]])
+        # image = distort_image(img, box, self.target_shape[0], self.target_shape[1],
+        #                       self.aspect_ratio_range, self.area_range)
+
+        image = tf.image.crop_to_bounding_box(img, box[0], box[1], box[2]-box[0], box[3]-box[1])
+        image = tf.image.resize_bilinear(image, [self.target_shape[0], self.target_shape[1]], align_corners=False)
+        image = tf.squeeze(image, [0])
+        image.set_shape([self.target_shape[0], self.target_shape[1], 3])
 
         # Color and contrast augmentation
         image = tf.to_float(image) / 255.
