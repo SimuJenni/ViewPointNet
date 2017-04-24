@@ -18,8 +18,9 @@ class Preprocessor:
     def process_train(self, img, box, im_size):
         # Select random crops
         im_size = tf.to_float(im_size)
+        box = tf.expand_dims(box, axis=0)
         print(box.get_shape().as_list())
-        box = tf.div(box, [im_size[:, 0], im_size[:, 1], im_size[:, 0], im_size[:, 1]])
+        box = tf.div(box, [im_size[0], im_size[1], im_size[0], im_size[1]])
         image = distort_image(img, box, self.target_shape[0], self.target_shape[1],
                               self.aspect_ratio_range, self.area_range)
 
