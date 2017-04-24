@@ -182,7 +182,7 @@ class VPNet:
                     net = up_conv2d(net, num_outputs=f_dims[self.num_layers - l - 2], scope='deconv_{}'.format(l))
 
                 in_shape = net.get_shape().as_list()
-                net = tf.image.resize_images(net, 2*in_shape[1], 2*in_shape[2], tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+                net = tf.image.resize_images(net, (2*in_shape[1], 2*in_shape[2]), tf.image.ResizeMethod.NEAREST_NEIGHBOR)
                 net = slim.conv2d(net, num_outputs=3, stride=1, activation_fn=tf.nn.tanh, normalizer_fn=None)
                 return net
 
