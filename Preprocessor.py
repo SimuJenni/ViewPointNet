@@ -17,13 +17,15 @@ class Preprocessor:
 
     def process_train(self, img, box, im_size):
         # Select random crops
+        print(im_size.eval())
+        print(box.eval())
         image = distort_image(img, box/im_size, self.target_shape[0], self.target_shape[1],
                               self.aspect_ratio_range, self.area_range)
 
         # Color and contrast augmentation
         image = tf.to_float(image) / 255.
         if self.augment_color:
-            image = dist_color(image)
+            image = dist_color(image, 0)
             image = tf.clip_by_value(image, 0.0, 1.0)
 
         # Scale to [-1, 1]
