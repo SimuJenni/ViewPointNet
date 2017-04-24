@@ -26,7 +26,6 @@ class Preprocessor:
         #                       self.aspect_ratio_range, self.area_range)
 
         box = tf.to_int32(box)
-        img.set_shape([im_size[0], im_size[1], 3])
         image = tf.image.crop_to_bounding_box(img, box[1], box[0], box[3]-box[1]+1, box[2]-box[0]+1)
         image = tf.expand_dims(image, axis=0)
         image = tf.image.resize_bilinear(image, [self.target_shape[0], self.target_shape[1]], align_corners=False)
