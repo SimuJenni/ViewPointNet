@@ -104,8 +104,8 @@ class VPNet:
         disc_in1 = merge(dec_im1, dec_ed2, dim=0)
         disc_in2 = merge(dec_im2, dec_ed1, dim=0)
 
-        disc_out1, _ = self.discriminator.discriminate(disc_in1, vp2, reuse=reuse, training=training)
-        disc_out2, _ = self.discriminator.discriminate(disc_in2, vp1, reuse=True, training=training)
+        disc_out1, _ = self.discriminator.discriminate(disc_in1, merge(vp2, vp2, dim=0), reuse=reuse, training=training)
+        disc_out2, _ = self.discriminator.discriminate(disc_in2, merge(vp1, vp1, dim=0), reuse=True, training=training)
 
         return dec_im1, dec_im2, dec_ed1, dec_ed2, disc_out1, disc_out2
 
