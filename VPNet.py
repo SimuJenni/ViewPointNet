@@ -190,7 +190,7 @@ class VPNet:
             with slim.arg_scope(vpnet_argscope(training=training, center=False)):
                 in_shape = net.get_shape().as_list()
                 net = slim.flatten(net)
-                net = merge(net, d_vp, dim=0)
+                net = merge(net, d_vp, dim=1)
                 net = slim.fully_connected(net, sum(in_shape), scope='fc_transform')
                 net = tf.reshape(net, in_shape)
                 return net
@@ -256,7 +256,7 @@ class VanillaDisc:
                 if with_fc:
                     # Fully connected layers
                     net = slim.flatten(net)
-                    net = merge(net, vp, dim=0)
+                    net = merge(net, vp, dim=1)
                     net = slim.fully_connected(net, 4096, scope='fc1', trainable=with_fc)
                     net = slim.dropout(net, 0.5, is_training=training)
                     net = slim.fully_connected(net, 4096, scope='fc2', trainable=with_fc)
