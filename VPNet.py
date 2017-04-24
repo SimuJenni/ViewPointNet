@@ -191,7 +191,7 @@ class VPNet:
                 in_shape = net.get_shape().as_list()
                 net = slim.flatten(net)
                 net = merge(net, d_vp, dim=1)
-                net = slim.fully_connected(net, sum(in_shape), scope='fc_transform')
+                net = slim.fully_connected(net, sum(in_shape[1:]), scope='fc_transform')
                 net = tf.reshape(net, in_shape)
                 return net
 
