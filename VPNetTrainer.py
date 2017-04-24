@@ -53,8 +53,8 @@ class VPNetTrainer:
     def get_train_batch(self):
         with tf.device('/cpu:0'):
             # Get the training dataset
-            train_set = self.dataset.get_toon_train()
-            self.num_train_steps = (self.dataset.get_num_train_toon() / self.model.batch_size) * self.num_epochs
+            train_set = self.dataset.get_trainset()
+            self.num_train_steps = (self.dataset.get_num_train() / self.model.batch_size) * self.num_epochs
             print('Number of training steps: {}'.format(self.num_train_steps))
             provider = slim.dataset_data_provider.DatasetDataProvider(train_set, num_readers=8,
                                                                       common_queue_capacity=4 * self.model.batch_size,
