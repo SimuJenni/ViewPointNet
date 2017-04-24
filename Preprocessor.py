@@ -18,19 +18,19 @@ class Preprocessor:
     def process_train(self, img, box, im_size):
         # Select random crops
 
-        # im_size = tf.to_float(im_size)
-        # box = tf.reshape(box, [1, 1, 4])
-        # print(box.get_shape().as_list())
-        # box = tf.div(box, [im_size[1], im_size[0], im_size[1], im_size[0]])
-        # image = distort_image(img, box, self.target_shape[0], self.target_shape[1],
-        #                       self.aspect_ratio_range, self.area_range)
+        im_size = tf.to_float(im_size)
+        box = tf.reshape(box, [1, 1, 4])
+        print(box.get_shape().as_list())
+        box = tf.div(box, [im_size[1], im_size[0], im_size[1], im_size[0]])
+        image = distort_image(img, box, self.target_shape[0], self.target_shape[1],
+                              self.aspect_ratio_range, self.area_range)
 
-        box = tf.to_int32(box)
-        image = tf.image.crop_to_bounding_box(img, box[1], box[0], box[3]-box[1]+1, box[2]-box[0]+1)
-        image = tf.expand_dims(image, axis=0)
-        image = tf.image.resize_bilinear(image, [self.target_shape[0], self.target_shape[1]], align_corners=False)
-        image = tf.squeeze(image, [0])
-        image.set_shape([self.target_shape[0], self.target_shape[1], 3])
+        # box = tf.to_int32(box)
+        # image = tf.image.crop_to_bounding_box(img, box[1], box[0], box[3]-box[1]+1, box[2]-box[0]+1)
+        # image = tf.expand_dims(image, axis=0)
+        # image = tf.image.resize_bilinear(image, [self.target_shape[0], self.target_shape[1]], align_corners=False)
+        # image = tf.squeeze(image, [0])
+        # image.set_shape([self.target_shape[0], self.target_shape[1], 3])
 
         # Color and contrast augmentation
         image = tf.to_float(image) / 255.
@@ -70,7 +70,8 @@ def distort_image(image, bbox, height, width, aspect_ratio_range=(0.9, 1.1), are
         bbox,
         aspect_ratio_range=aspect_ratio_range,
         area_range=area_range,
-        use_image_if_no_bounding_boxes=True)
+        use_image_if_no_bounding_boxes=True,
+        min_object_covered=0.9)
     bbox_begin, bbox_size, distort_bbox = sample_distorted_bounding_box
 
     # Crop the image to the specified bounding box.
