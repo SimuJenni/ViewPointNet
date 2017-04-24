@@ -46,7 +46,7 @@ class ObjectNet3D(Dataset):
     def get_items_to_handlers(self):
         items_to_handlers = {
             'image': slim.tfexample_decoder.Image('image/encoded', 'image/format', channels=3),
-            'im_size': slim.tfexample_decoder.Tensor('iimage/im_size'),
+            'im_size': slim.tfexample_decoder.Tensor('image/im_size'),
             'bbox': slim.tfexample_decoder.Tensor('image/bbox'),
             'viewpoint': slim.tfexample_decoder.Tensor('image/viewpoint')
         }
