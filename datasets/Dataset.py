@@ -64,6 +64,7 @@ class Dataset:
             raise ValueError('split name %s was not recognized.' % split_name)
 
         data_files = self.get_data_files(split_name)
+        print('Found the following data files %s' % self.data_dir)
         if not data_files:
             print('No files found for dataset at %s' % self.data_dir)
 

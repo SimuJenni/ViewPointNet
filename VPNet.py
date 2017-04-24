@@ -5,10 +5,9 @@ import numpy as np
 
 DEFAULT_FILTER_DIMS = [64, 128, 256, 512, 512]
 REPEATS = [1, 1, 2, 2, 2]
-NOISE_CHANNELS = [1, 4, 8, 16, 32, 64, 128]
 
 
-def vpnet_argscope(activation=tf.nn.relu, kernel_size=(3, 3), padding='SAME', training=True, center=True,
+def vpnet_argscope(activation=lrelu, kernel_size=(3, 3), padding='SAME', training=True, center=True,
                    w_reg=0.0001, fix_bn=False):
     """Defines default parameter values for all the layers used in ToonNet.
 
