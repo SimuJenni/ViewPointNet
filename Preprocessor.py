@@ -17,8 +17,10 @@ class Preprocessor:
 
     def process_train(self, img, box, im_size):
         # Select random crops
-        print(im_size.eval())
-        print(box.eval())
+        box[0] /= im_size[0]
+        box[2] /= im_size[0] 
+        box[1] /= im_size[1]
+        box[3] /= im_size[1]
         image = distort_image(img, box/im_size, self.target_shape[0], self.target_shape[1],
                               self.aspect_ratio_range, self.area_range)
 
