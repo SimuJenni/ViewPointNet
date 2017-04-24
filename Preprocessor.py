@@ -32,6 +32,7 @@ class Preprocessor:
         # image = tf.squeeze(image, [0])
         # image.set_shape([self.target_shape[0], self.target_shape[1], 3])
 
+        box = tf.to_int32(box)
         distorted_image = tf.slice(img, [box[0], box[1]], [box[2], box[3]])
         distorted_image = tf.expand_dims(distorted_image, 0)
         resized_image = tf.image.resize_bilinear(distorted_image, [self.target_shape[0], self.target_shape[1]], align_corners=False)
