@@ -25,6 +25,7 @@ class Preprocessor:
         # image = distort_image(img, box, self.target_shape[0], self.target_shape[1],
         #                       self.aspect_ratio_range, self.area_range)
 
+        box = tf.to_float(box)
         image = tf.image.crop_to_bounding_box(img, box[0], box[1], box[2]-box[0], box[3]-box[1])
         image = tf.image.resize_bilinear(image, [self.target_shape[0], self.target_shape[1]], align_corners=False)
         image = tf.squeeze(image, [0])
