@@ -90,13 +90,13 @@ class VPNet:
         dec_im1 = self.decoder(enc_im1, reuse=reuse, training=training)
         dec_im2 = self.decoder(enc_im2, reuse=True, training=training)
 
-        enc_dec1 = self.encoder(dec_im1, reuse=True, training=training)
+        enc_dec1 = self.encoder(dec_im1, reuse=True, training=training) #TODO: Maybe set training to False in one usage
         enc_dec2 = self.encoder(dec_im2, reuse=True, training=training)
 
-        enc_dec1 = self.hidden_transform(enc_dec1, vp1-vp2, reuse=True, training=training)
+        enc_dec1 = self.hidden_transform(enc_dec1, vp1-vp2, reuse=True, training=training)  #TODO: Maybe set training to False in one usage
         enc_dec2 = self.hidden_transform(enc_dec2, vp2-vp1, reuse=True, training=training)
 
-        dec_ed1 = self.decoder(enc_dec1, reuse=True, training=training)
+        dec_ed1 = self.decoder(enc_dec1, reuse=True, training=training) #TODO: Maybe set training to False in one usage
         dec_ed2 = self.decoder(enc_dec2, reuse=True, training=training)
 
         # Build input for discriminator
@@ -186,6 +186,16 @@ class VPNet:
                 return net
 
     def hidden_transform(self, net, d_vp, reuse=None, training=True):
+        with tf.variable_scope('transformer', reuse=reuse):
+            with slim.arg_scope(vpnet_argscope(training=training, center=False)):
+                in_shape = net.get_shape().as_list()
+                net = slim.flatten(net)
+                net = merge(net, d_vp, dim=1)
+                net = slim.fully_connected(net, np.prod(in_shape[1:]), scope='fc_transform')
+                net = tf.reshape(net, in_shape)
+                return net
+
+    def hidden_transform2(self, net, d_vp, reuse=None, training=True):
         with tf.variable_scope('transformer', reuse=reuse):
             with slim.arg_scope(vpnet_argscope(training=training, center=False)):
                 in_shape = net.get_shape().as_list()
