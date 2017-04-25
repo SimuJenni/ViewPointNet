@@ -9,7 +9,7 @@ classes = set([])
 
 #for f in files:
 
-f = files[10]
+f = files[15]
 mat = scipy.io.loadmat(f)
 record = mat['record']
 
@@ -18,7 +18,6 @@ fname = record['filename'][0, 0][0]
 
 # Get the image size
 im_size = record['imgsize'][0, 0][0]
-print im_size.shape
 
 # Get all the objects
 objects = mat['record']['objects'][0, 0]
@@ -33,4 +32,6 @@ for i in range(num_objects):
     elevation_coarse = viewpoint['elevation_coarse'][0, 0]
     theta = viewpoint['theta'][0, 0]
 
-    print(bbox)
+    print(objects[0, i]['difficult'][0, 0])
+    print(objects[0, i]['occluded'][0, 0])
+    print(objects[0, i]['truncated'][0, 0])

@@ -62,8 +62,13 @@ def parse_mat(mat_file, data_path):
         elevation = viewpoint['elevation_coarse'][0, 0]
         theta = viewpoint['theta'][0, 0]
 
-        examples.append({'image_path': image_path, 'im_size': im_size, 'class_name': class_name, 'bbox': bbox,
-                        'azimuth': azimuth, 'elevation': elevation, 'theta': theta})
+        difficult = objects[0, i]['difficult'][0, 0]
+        occluded = objects[0, i]['occluded'][0, 0]
+        truncated = objects[0, i]['truncated'][0, 0]
+
+        if difficult+occluded+truncated == 0:
+            examples.append({'image_path': image_path, 'im_size': im_size, 'class_name': class_name, 'bbox': bbox,
+                            'azimuth': azimuth, 'elevation': elevation, 'theta': theta})
     return examples
 
 
