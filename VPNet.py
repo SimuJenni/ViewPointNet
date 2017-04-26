@@ -293,4 +293,5 @@ class VanillaDisc:
                                                normalizer_fn=None,
                                                biases_initializer=tf.zeros_initializer,
                                                trainable=with_fc)
+                    net = tf.squeeze(net)
                 return net, encoded
