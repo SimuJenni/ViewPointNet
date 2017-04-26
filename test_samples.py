@@ -1,4 +1,6 @@
 import tensorflow as tf
+from VPNet import VPNet
+from VPNetTrainer import VPNetTrainer
 import os
 from Preprocessor import Preprocessor
 from utils import montage_tf
@@ -11,7 +13,9 @@ bs = 100
 data = ObjectNet3D('car')
 preprocessor = Preprocessor(target_shape=[96, 96, 3])
 LOG_PATH = os.path.join(LOG_DIR, 'test_preprocess/')
-
+model = VPNet(num_layers=5, batch_size=128)
+trainer = VPNetTrainer(model=model, dataset=data, pre_processor=preprocessor, num_epochs=1000, tag='3rd_attempt',
+                       lr_policy='const', optimizer='adam')
 
 with tf.Session() as sess:
     global_step = slim.create_global_step()
@@ -37,7 +41,7 @@ with tf.Session() as sess:
     summary_ops.append(tf.image_summary('images/orig', montage_tf(imgs, 10, 10), max_images=1))
     summary_ops.append(tf.image_summary('images/processed', montage_tf(imgs_processed, 10, 10), max_images=1))
 
-    slim.evaluation.evaluation_loop('', '', LOG_PATH,
+    slim.evaluation.evaluation_loop('', trainer.get_save_dir(), LOG_PATH,
                                                 num_evals=1,
                                                 max_number_of_evaluations=1,
                                                 eval_op=names_to_updates.values(),
