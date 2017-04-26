@@ -170,7 +170,7 @@ class VPNetTrainer:
 
                 # Get labels
                 labels_real, labels_fake = self.model.disc_labels()
-                labels_vp = self.model.vp_label(self, vps1, vps2)
+                labels_vp = self.model.vp_label(vps1, vps2)
 
                 dec_im1, dec_im2, dec_ed1, dec_ed2, class_out_real, class_out_fake, disc_out_real, disc_out_fake = \
                     self.model.net(imgs1, imgs2, vps1, vps2, reuse=None, training=True)
