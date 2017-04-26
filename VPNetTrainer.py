@@ -87,7 +87,8 @@ class VPNetTrainer:
         return disc_total_loss
 
     def vp_loss(self, vp_out, target, scope='viewpoint_reg'):
-        vp_loss = tf.contrib.losses.mean_squared_error(predictions=vp_out, labels=target, scope=scope, weight=1)
+        # vp_loss = tf.contrib.losses.mean_squared_error(predictions=vp_out, labels=target, scope=scope, weight=1)
+        vp_loss = tf.reduce_mean(tf.squared_difference(vp_out, target))
         tf.scalar_summary('losses/{}'.format(scope), vp_loss)
         losses_vp = slim.losses.get_losses(scope)
         losses_vp += slim.losses.get_regularization_losses(scope)
