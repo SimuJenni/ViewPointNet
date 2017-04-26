@@ -75,8 +75,10 @@ class VPNetTrainer:
     def discriminator_loss(self, disc_out1, disc_out2, disc_labels):
         # Define loss for discriminator training
         disc_loss_scope = 'disc_loss'
-        disc_loss = slim.losses.softmax_cross_entropy(disc_out1, disc_labels, scope=disc_loss_scope, weight=1.0)
-        disc_loss += slim.losses.softmax_cross_entropy(disc_out2, disc_labels, scope=disc_loss_scope, weight=1.0)
+        # disc_loss = slim.losses.softmax_cross_entropy(disc_out1, disc_labels, scope=disc_loss_scope, weight=1.0)
+        # disc_loss += slim.losses.softmax_cross_entropy(disc_out2, disc_labels, scope=disc_loss_scope, weight=1.0)
+        disc_loss = slim.losses.sigmoid_cross_entropy(disc_out1, disc_labels, scope=disc_loss_scope, weight=1.0)
+        disc_loss += slim.losses.sigmoid_cross_entropy(disc_out2, disc_labels, scope=disc_loss_scope, weight=1.0)
         tf.scalar_summary('losses/discriminator loss', disc_loss)
         losses_disc = slim.losses.get_losses(disc_loss_scope)
         losses_disc += slim.losses.get_regularization_losses(disc_loss_scope)
@@ -91,8 +93,10 @@ class VPNetTrainer:
     def generator_loss(self, imgs1, dec_ed1, imgs2, dec_ed2, disc_out1, disc_out2,  labels_gen):
         # Define the losses for generator training
         gen_loss_scope = 'gen_loss'
-        gen_disc_loss = slim.losses.softmax_cross_entropy(disc_out1, labels_gen, scope=gen_loss_scope, weight=1.0)
-        gen_disc_loss += slim.losses.softmax_cross_entropy(disc_out2, labels_gen, scope=gen_loss_scope, weight=1.0)
+        # gen_disc_loss = slim.losses.softmax_cross_entropy(disc_out1, labels_gen, scope=gen_loss_scope, weight=1.0)
+        # gen_disc_loss += slim.losses.softmax_cross_entropy(disc_out2, labels_gen, scope=gen_loss_scope, weight=1.0)
+        gen_disc_loss = slim.losses.sigmoid_cross_entropy(disc_out1, labels_gen, scope=gen_loss_scope, weight=1.0)
+        gen_disc_loss += slim.losses.sigmoid_cross_entropy(disc_out2, labels_gen, scope=gen_loss_scope, weight=1.0)
         tf.scalar_summary('losses/discriminator loss (generator)', gen_disc_loss)
         gen_ae_loss = tf.contrib.losses.mean_squared_error(predictions=dec_ed1, labels=imgs1, scope=gen_loss_scope,
                                                            weight=50.0)

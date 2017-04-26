@@ -60,10 +60,6 @@ class VPNet:
         self.batch_size = batch_size
         self.vgg_discriminator = vgg_discriminator
         self.discriminator = VanillaDisc(num_layers=num_layers, fix_bn=fix_bn)
-        # if vgg_discriminator:
-        #     self.discriminator = VGGA(fix_bn=fix_bn)
-        # else:
-        #     self.discriminator = AlexNet(fix_bn=fix_bn)
 
     def net(self, im1, im2, vp1, vp2, reuse=None, training=True):
         """Builds the full VPNet architecture with the given inputs.
@@ -108,6 +104,26 @@ class VPNet:
 
         return dec_im1, dec_im2, dec_ed1, dec_ed2, disc_out1, disc_out2
 
+    # def disc_labels(self):
+    #     """Generates labels for discriminator training (see discriminator input!)
+    #
+    #     Returns:
+    #         One-hot encoded labels
+    #     """
+    #     labels = tf.Variable(tf.concat(concat_dim=0, values=[tf.zeros(shape=(self.batch_size,), dtype=tf.int32),
+    #                                                          tf.ones(shape=(self.batch_size,), dtype=tf.int32)]))
+    #     return slim.one_hot_encoding(labels, 2)
+    #
+    # def gen_labels(self):
+    #     """Generates labels for generator training (see discriminator input!). Exact opposite of disc_labels
+    #
+    #     Returns:
+    #         One-hot encoded labels
+    #     """
+    #     labels = tf.Variable(tf.concat(concat_dim=0, values=[tf.ones(shape=(self.batch_size,), dtype=tf.int32),
+    #                                                          tf.zeros(shape=(self.batch_size,), dtype=tf.int32)]))
+    #     return slim.one_hot_encoding(labels, 2)
+
     def disc_labels(self):
         """Generates labels for discriminator training (see discriminator input!)
 
@@ -116,7 +132,8 @@ class VPNet:
         """
         labels = tf.Variable(tf.concat(concat_dim=0, values=[tf.zeros(shape=(self.batch_size,), dtype=tf.int32),
                                                              tf.ones(shape=(self.batch_size,), dtype=tf.int32)]))
-        return slim.one_hot_encoding(labels, 2)
+        labels /= self.batch_size
+        return labels
 
     def gen_labels(self):
         """Generates labels for generator training (see discriminator input!). Exact opposite of disc_labels
@@ -124,9 +141,9 @@ class VPNet:
         Returns:
             One-hot encoded labels
         """
-        labels = tf.Variable(tf.concat(concat_dim=0, values=[tf.ones(shape=(self.batch_size,), dtype=tf.int32),
-                                                             tf.zeros(shape=(self.batch_size,), dtype=tf.int32)]))
-        return slim.one_hot_encoding(labels, 2)
+        labels = tf.ones(shape=(2*self.batch_size,), dtype=tf.int32)
+        labels /= 2*self.batch_size
+        return labels
 
     def build_classifier(self, img, num_classes, reuse=None, training=True):
         """Builds a classifier on top either the encoder, generator or discriminator trained in the AEGAN.
@@ -276,143 +293,4 @@ class VanillaDisc:
                                                normalizer_fn=None,
                                                biases_initializer=tf.zeros_initializer,
                                                trainable=with_fc)
-                return net, encoded
-
-
-class AlexNet:
-    def __init__(self, fc_activation=tf.nn.relu, fix_bn=False):
-        self.fix_bn = fix_bn
-        self.fc_activation = fc_activation
-
-    def classify(self, net, num_classes, reuse=None, training=True):
-        """Builds a classifier on top of inputs consisting of 3 fully connected layers.
-
-        Args:
-            net: The input layer to the classifier
-            num_classes: Number of output classes
-            reuse: Whether to reuse the weights (if already defined earlier)
-            training: Whether in train or test mode
-
-        Returns:
-            Resulting logits for all the classes
-        """
-        with tf.variable_scope('fully_connected', reuse=reuse):
-            with slim.arg_scope(vpnet_argscope(activation=self.fc_activation, training=training,
-                                               fix_bn=self.fix_bn)):
-                net = slim.max_pool2d(net, kernel_size=[3, 3], stride=2, scope='pool_5')
-                net = slim.flatten(net)
-                net = slim.fully_connected(net, 4096, scope='fc1')
-                net = slim.dropout(net, 0.5, is_training=training)
-                net = slim.fully_connected(net, 4096, scope='fc2')
-                net = slim.dropout(net, 0.5, is_training=training)
-                net = slim.fully_connected(net, num_classes, scope='fc3',
-                                           activation_fn=None,
-                                           normalizer_fn=None,
-                                           biases_initializer=tf.zeros_initializer)
-        return net
-
-    def discriminate(self, net, vp, reuse=None, training=True, with_fc=True):
-        """Builds a discriminator network on top of inputs.
-
-        Args:
-            net: Input to the discriminator
-            reuse: Whether to reuse already defined variables
-            training: Whether in train or test mode.
-            with_fc: Whether to include fully connected layers (used during unsupervised training)
-
-        Returns:
-            Resulting logits
-        """
-        with tf.variable_scope('discriminator', reuse=reuse):
-            with slim.arg_scope(vpnet_argscope(activation=lrelu, padding='SAME', training=training,
-                                               fix_bn=self.fix_bn)):
-                net = slim.conv2d(net, 64, kernel_size=[11, 11], stride=4, padding='VALID', scope='conv_1',
-                                  normalizer_fn=None)
-                net = slim.max_pool2d(net, kernel_size=[3, 3], stride=2, scope='pool_1')
-                net = slim.conv2d(net, 192, kernel_size=[5, 5], scope='conv_2')
-                net = slim.max_pool2d(net, kernel_size=[3, 3], stride=2, scope='pool_2')
-                net = slim.conv2d(net, 384, kernel_size=[3, 3], scope='conv_3')
-                net = slim.conv2d(net, 384, kernel_size=[3, 3], scope='conv_4')
-                net = slim.conv2d(net, 256, kernel_size=[3, 3], scope='conv_5')
-                encoded = net
-
-                if with_fc:
-                    # Fully connected layers
-                    net = slim.flatten(net)
-                    net = slim.fully_connected(net, 4096, scope='fc1', trainable=with_fc)
-                    net = slim.dropout(net, 0.5, is_training=training)
-                    net = slim.fully_connected(net, 4096, scope='fc2', trainable=with_fc)
-                    net = slim.dropout(net, 0.5, is_training=training)
-                    net = slim.fully_connected(net, 2,
-                                               activation_fn=None,
-                                               normalizer_fn=None,
-                                               biases_initializer=tf.zeros_initializer,
-                                               trainable=with_fc)
-                return net, encoded
-
-
-class VGGA:
-    def __init__(self, fc_activation=tf.nn.relu, fix_bn=False):
-        self.fix_bn = fix_bn
-        self.fc_activation = fc_activation
-
-    def classify(self, net, num_classes, reuse=None, training=True):
-        """Builds a classifier on top of inputs consisting of 3 fully connected layers.
-
-        Args:
-            net: The input layer to the classifier
-            num_classes: Number of output classes
-            reuse: Whether to reuse the weights (if already defined earlier)
-            training: Whether in train or test mode
-
-        Returns:
-            Resulting logits for all the classes
-        """
-        with tf.variable_scope('fully_connected', reuse=reuse):
-            with slim.arg_scope(vpnet_argscope(activation=self.fc_activation, training=training,
-                                               fix_bn=self.fix_bn)):
-                net = slim.flatten(net)
-                net = slim.fully_connected(net, 4096, scope='fc1')
-                net = slim.dropout(net, 0.5, is_training=training)
-                net = slim.fully_connected(net, 4096, scope='fc2')
-                net = slim.dropout(net, 0.5, is_training=training)
-                net = slim.fully_connected(net, num_classes, scope='fc3',
-                                           activation_fn=None,
-                                           normalizer_fn=None,
-                                           biases_initializer=tf.zeros_initializer)
-        return net
-
-    def discriminate(self, net, vp, reuse=None, training=True, with_fc=True):
-        """Builds a discriminator network on top of inputs.
-
-        Args:
-            net: Input to the discriminator
-            reuse: Whether to reuse already defined variables
-            training: Whether in train or test mode.
-            with_fc: Whether to include fully connected layers (used during unsupervised training)
-
-        Returns:
-            Resulting logits
-        """
-        f_dims = DEFAULT_FILTER_DIMS
-        with tf.variable_scope('discriminator', reuse=reuse):
-            with slim.arg_scope(vpnet_argscope(activation=lrelu, padding='SAME', training=training,
-                                               fix_bn=self.fix_bn)):
-                for l in range(0, 5):
-                    if l == 0:
-                        net = slim.conv2d(net, f_dims[l], scope='conv_1_1', normalizer_fn=None)
-                        net = slim.conv2d(net, f_dims[l], scope='conv_1_2')
-                    else:
-                        net = slim.repeat(net, REPEATS[l], slim.conv2d, num_outputs=f_dims[l],
-                                          scope='conv_{}'.format(l + 1))
-                    net = slim.max_pool2d(net, [2, 2], scope='pool_{}'.format(l + 1))
-
-                encoded = net
-                # Fully connected layers
-                net = slim.flatten(net)
-                net = slim.fully_connected(net, 2,
-                                           activation_fn=None,
-                                           normalizer_fn=None,
-                                           biases_initializer=tf.zeros_initializer,
-                                           trainable=with_fc)
                 return net, encoded
