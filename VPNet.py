@@ -132,7 +132,7 @@ class VPNet:
         """
         labels = tf.Variable(tf.concat(concat_dim=0, values=[tf.zeros(shape=(self.batch_size,), dtype=tf.int32),
                                                              tf.ones(shape=(self.batch_size,), dtype=tf.int32)]))
-        labels /= self.batch_size
+        # labels /= self.batch_size
         return labels
 
     def gen_labels(self):
@@ -142,7 +142,7 @@ class VPNet:
             One-hot encoded labels
         """
         labels = tf.ones(shape=(2*self.batch_size,), dtype=tf.int32)
-        labels /= 2*self.batch_size
+        # labels /= 2*self.batch_size
         return labels
 
     def build_classifier(self, img, num_classes, reuse=None, training=True):
