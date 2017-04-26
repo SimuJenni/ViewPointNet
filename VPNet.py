@@ -223,7 +223,6 @@ class VanillaDisc:
                                           normalizer_fn=None)
                     else:
                         net = slim.conv2d(net, num_outputs=f_dims[l], stride=2, scope='conv_{}'.format(l + 1))
-                encoded = net
 
                 if with_fc:
                     # Fully connected layers
@@ -235,7 +234,7 @@ class VanillaDisc:
                                                normalizer_fn=None,
                                                biases_initializer=tf.zeros_initializer,
                                                trainable=with_fc)
-                return net, encoded
+                return net
 
     def discriminate(self, net, reuse=None, training=True, with_fc=True):
         """Builds a discriminator network on top of inputs.
