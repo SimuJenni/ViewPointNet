@@ -113,8 +113,8 @@ class VPNet:
         return merge(vp1, vp2, dim=0)
 
     def disc_labels(self):
-        labels_real = tf.Variable(tf.ones(shape=(self.batch_size*2,)))
-        labels_fake = tf.Variable(tf.zeros(shape=(self.batch_size*2,)))
+        labels_real = tf.Variable(tf.ones(shape=(self.batch_size*2, 1)))
+        labels_fake = tf.Variable(tf.zeros(shape=(self.batch_size*2, 1)))
         return slim.one_hot_encoding(labels_real, 2), slim.one_hot_encoding(labels_fake, 2)
 
     def build_classifier(self, img, num_classes, reuse=None, training=True):
