@@ -237,7 +237,7 @@ class VanillaDisc:
                                                trainable=with_fc)
                 return net, encoded
 
-    def discriminate(self, net, vp, reuse=None, training=True, with_fc=True):
+    def discriminate(self, net, reuse=None, training=True, with_fc=True):
         """Builds a discriminator network on top of inputs.
 
         Args:
@@ -264,7 +264,6 @@ class VanillaDisc:
                 if with_fc:
                     # Fully connected layers
                     net = slim.flatten(net)
-                    net = merge(net, vp, dim=1)
                     net = slim.fully_connected(net, 4096, scope='fc1', trainable=with_fc)
                     net = slim.dropout(net, 0.5, is_training=training)
                     net = slim.fully_connected(net, 2,
