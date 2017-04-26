@@ -60,6 +60,8 @@ class VPNetTrainer:
                                                                       common_queue_capacity=4 * self.model.batch_size,
                                                                       common_queue_min=self.model.batch_size*2)
             [img, im_size, box, vp] = provider.get(['image', 'im_size', 'bbox', 'viewpoint'])
+            vp /= 104.  # Approximate std when supposing uniform distribution
+            #TODO: Standardize the vps!!!!!!
 
             # Preprocess data
             img = self.pre_processor.process_train(img, box, im_size)
