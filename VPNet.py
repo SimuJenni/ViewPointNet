@@ -76,7 +76,6 @@ class VPNet:
             enc_im: Encoding of the image
             gen_enc: Output of the generator
         """
-
         enc_im1 = self.encoder(im1, reuse=reuse, training=training)
         enc_im2 = self.encoder(im2, reuse=True, training=training)
 
@@ -96,54 +95,27 @@ class VPNet:
         dec_ed2 = self.decoder(enc_dec2, reuse=True, training=training)
 
         # Build input for discriminator
-        disc_in1 = merge(dec_im1, im2, dim=0)
-        disc_in2 = merge(dec_im2, im1, dim=0)
+        disc_in_fake = merge(dec_im1, dec_im2, dim=0)
+        disc_in_real = merge(dec_ed1, dec_ed2, dim=0)
 
-        disc_out1, _ = self.discriminator.discriminate(disc_in1, merge(vp2, vp2, dim=0), reuse=reuse, training=training)
-        disc_out2, _ = self.discriminator.discriminate(disc_in2, merge(vp1, vp1, dim=0), reuse=True, training=training)
+        disc_out_fake, _ = self.discriminator.discriminate(disc_in_fake, reuse=reuse, training=training)
+        disc_out_real, _ = self.discriminator.discriminate(disc_in_real, reuse=True, training=training)
 
-        return dec_im1, dec_im2, dec_ed1, dec_ed2, disc_out1, disc_out2
+        class_in_real = merge(dec_ed1, dec_ed2, dim=0)
+        class_in_fake = merge(dec_im2, dec_im1, dim=0)
 
-    # def disc_labels(self):
-    #     """Generates labels for discriminator training (see discriminator input!)
-    #
-    #     Returns:
-    #         One-hot encoded labels
-    #     """
-    #     labels = tf.Variable(tf.concat(concat_dim=0, values=[tf.zeros(shape=(self.batch_size,), dtype=tf.int32),
-    #                                                          tf.ones(shape=(self.batch_size,), dtype=tf.int32)]))
-    #     return slim.one_hot_encoding(labels, 2)
-    #
-    # def gen_labels(self):
-    #     """Generates labels for generator training (see discriminator input!). Exact opposite of disc_labels
-    #
-    #     Returns:
-    #         One-hot encoded labels
-    #     """
-    #     labels = tf.Variable(tf.concat(concat_dim=0, values=[tf.ones(shape=(self.batch_size,), dtype=tf.int32),
-    #                                                          tf.zeros(shape=(self.batch_size,), dtype=tf.int32)]))
-    #     return slim.one_hot_encoding(labels, 2)
+        class_out_real = self.discriminator.classify(class_in_real, 3, reuse=reuse, training=training)
+        class_out_fake = self.discriminator.classify(class_in_fake, 3, reuse=True, training=training)
+
+        return dec_im1, dec_im2, dec_ed1, dec_ed2, class_out_real, class_out_fake, disc_out_real, disc_out_fake
+
+    def vp_label(self, vp1, vp2):
+        return merge(vp1, vp2, dim=0)
 
     def disc_labels(self):
-        """Generates labels for discriminator training (see discriminator input!)
-
-        Returns:
-            One-hot encoded labels
-        """
-        labels = tf.Variable(tf.concat(concat_dim=0, values=[tf.zeros(shape=(self.batch_size,), dtype=tf.int32),
-                                                             tf.ones(shape=(self.batch_size,), dtype=tf.int32)]))
-        # labels /= self.batch_size
-        return labels
-
-    def gen_labels(self):
-        """Generates labels for generator training (see discriminator input!). Exact opposite of disc_labels
-
-        Returns:
-            One-hot encoded labels
-        """
-        labels = tf.ones(shape=(2*self.batch_size,), dtype=tf.int32)
-        # labels /= 2*self.batch_size
-        return labels
+        labels_real = tf.Variable(tf.ones(shape=(self.batch_size*2,)))
+        labels_fake = tf.Variable(tf.zeros(shape=(self.batch_size*2,)))
+        return slim.one_hot_encoding(labels_real, 2), slim.one_hot_encoding(labels_fake, 2)
 
     def build_classifier(self, img, num_classes, reuse=None, training=True):
         """Builds a classifier on top either the encoder, generator or discriminator trained in the AEGAN.
@@ -229,32 +201,41 @@ class VanillaDisc:
         self.fix_bn = fix_bn
         self.fc_activation = fc_activation
 
-    def classify(self, net, num_classes, reuse=None, training=True):
-        """Builds a classifier on top of inputs consisting of 3 fully connected layers.
+    def classify(self, net, num_out, reuse=None, training=True, with_fc=True):
+        """Builds a discriminator network on top of inputs.
 
         Args:
-            net: The input layer to the classifier
-            num_classes: Number of output classes
-            reuse: Whether to reuse the weights (if already defined earlier)
-            training: Whether in train or test mode
+            net: Input to the discriminator
+            reuse: Whether to reuse already defined variables
+            training: Whether in train or test mode.
+            with_fc: Whether to include fully connected layers (used during unsupervised training)
 
         Returns:
-            Resulting logits for all the classes
+            Resulting logits
         """
-        with tf.variable_scope('fully_connected', reuse=reuse):
-            with slim.arg_scope(vpnet_argscope(activation=self.fc_activation, training=training,
+        with tf.variable_scope('vp_regressor', reuse=reuse):
+            with slim.arg_scope(vpnet_argscope(activation=lrelu, padding='SAME', training=training,
                                                fix_bn=self.fix_bn)):
-                net = slim.max_pool2d(net, kernel_size=[3, 3], stride=2, scope='pool_5')
-                net = slim.flatten(net)
-                net = slim.fully_connected(net, 4096, scope='fc1')
-                net = slim.dropout(net, 0.5, is_training=training)
-                net = slim.fully_connected(net, 4096, scope='fc2')
-                net = slim.dropout(net, 0.5, is_training=training)
-                net = slim.fully_connected(net, num_classes, scope='fc3',
-                                           activation_fn=None,
-                                           normalizer_fn=None,
-                                           biases_initializer=tf.zeros_initializer)
-        return net
+                f_dims = DEFAULT_FILTER_DIMS
+                for l in range(0, self.num_layers):
+                    if l == 0:
+                        net = slim.conv2d(net, num_outputs=f_dims[l], stride=2, scope='conv_{}'.format(l + 1),
+                                          normalizer_fn=None)
+                    else:
+                        net = slim.conv2d(net, num_outputs=f_dims[l], stride=2, scope='conv_{}'.format(l + 1))
+                encoded = net
+
+                if with_fc:
+                    # Fully connected layers
+                    net = slim.flatten(net)
+                    net = slim.fully_connected(net, 4096, scope='fc1', trainable=with_fc)
+                    net = slim.dropout(net, 0.5, is_training=training)
+                    net = slim.fully_connected(net, num_out,
+                                               activation_fn=None,
+                                               normalizer_fn=None,
+                                               biases_initializer=tf.zeros_initializer,
+                                               trainable=with_fc)
+                return net, encoded
 
     def discriminate(self, net, vp, reuse=None, training=True, with_fc=True):
         """Builds a discriminator network on top of inputs.
@@ -286,12 +267,9 @@ class VanillaDisc:
                     net = merge(net, vp, dim=1)
                     net = slim.fully_connected(net, 4096, scope='fc1', trainable=with_fc)
                     net = slim.dropout(net, 0.5, is_training=training)
-                    net = slim.fully_connected(net, 4096, scope='fc2', trainable=with_fc)
-                    net = slim.dropout(net, 0.5, is_training=training)
-                    net = slim.fully_connected(net, 1,
+                    net = slim.fully_connected(net, 2,
                                                activation_fn=None,
                                                normalizer_fn=None,
                                                biases_initializer=tf.zeros_initializer,
                                                trainable=with_fc)
-                    net = tf.squeeze(net)
                 return net, encoded

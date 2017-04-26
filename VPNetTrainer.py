@@ -72,36 +72,42 @@ class VPNetTrainer:
 
             return imgs1, vps1, imgs2, vps2
 
-    def discriminator_loss(self, disc_out1, disc_out2, disc_labels):
+    def discriminator_loss(self, disc_out, disc_labels, scope='disc_loss'):
         # Define loss for discriminator training
-        disc_loss_scope = 'disc_loss'
-        # disc_loss = slim.losses.softmax_cross_entropy(disc_out1, disc_labels, scope=disc_loss_scope, weight=1.0)
-        # disc_loss += slim.losses.softmax_cross_entropy(disc_out2, disc_labels, scope=disc_loss_scope, weight=1.0)
-        disc_loss = slim.losses.sigmoid_cross_entropy(disc_out1, disc_labels, scope=disc_loss_scope, weight=1.0)
-        disc_loss += slim.losses.sigmoid_cross_entropy(disc_out2, disc_labels, scope=disc_loss_scope, weight=1.0)
-        tf.scalar_summary('losses/discriminator loss', disc_loss)
-        losses_disc = slim.losses.get_losses(disc_loss_scope)
-        losses_disc += slim.losses.get_regularization_losses(disc_loss_scope)
-        disc_total_loss = math_ops.add_n(losses_disc, name='disc_total_loss')
+        disc_loss = slim.losses.softmax_cross_entropy(disc_out, disc_labels, scope=scope, weight=1.0)
+        tf.scalar_summary('losses/{}'.format(scope), disc_loss)
+        losses_disc = slim.losses.get_losses(scope)
+        losses_disc += slim.losses.get_regularization_losses(scope)
+        disc_total_loss = math_ops.add_n(losses_disc, name='total_{}'.format(scope))
+
+        # Compute accuracy
+        predictions = tf.argmax(disc_out, 1)
+        tf.scalar_summary('accuracy/{}'.format(scope),
+                          slim.metrics.accuracy(predictions, tf.argmax(disc_labels, 1)))
         return disc_total_loss
 
-    def generator_loss(self, imgs1, dec_ed1, imgs2, dec_ed2, disc_out1, disc_out2,  labels_gen):
-        # Define the losses for generator training
+    def vp_loss(self, vp_out, target, scope='viewpoint_reg'):
+        vp_loss = tf.contrib.losses.mean_squared_error(predictions=vp_out, labels=target, scope=scope, weight=1)
+        tf.scalar_summary('losses/{}'.format(scope), vp_loss)
+        losses_vp = slim.losses.get_losses(scope)
+        losses_vp += slim.losses.get_regularization_losses(scope)
+        vp_total_loss = math_ops.add_n(losses_vp, name='total_{}'.format(scope))
+        return vp_total_loss
+
+    def generator_loss(self, imgs1, dec_ed1, imgs2, dec_ed2, vp_out,  target_vp, disc_out, disc_labels):
         gen_loss_scope = 'gen_loss'
-        # gen_disc_loss = slim.losses.softmax_cross_entropy(disc_out1, labels_gen, scope=gen_loss_scope, weight=1.0)
-        # gen_disc_loss += slim.losses.softmax_cross_entropy(disc_out2, labels_gen, scope=gen_loss_scope, weight=1.0)
-        gen_disc_loss = slim.losses.sigmoid_cross_entropy(disc_out1, labels_gen, scope=gen_loss_scope, weight=1.0)
-        gen_disc_loss += slim.losses.sigmoid_cross_entropy(disc_out2, labels_gen, scope=gen_loss_scope, weight=1.0)
-        tf.scalar_summary('losses/discriminator loss (generator)', gen_disc_loss)
         gen_ae_loss = tf.contrib.losses.mean_squared_error(predictions=dec_ed1, labels=imgs1, scope=gen_loss_scope,
-                                                           weight=10.0)
+                                                           weight=30.0)
         gen_ae_loss += tf.contrib.losses.mean_squared_error(predictions=dec_ed2, labels=imgs2, scope=gen_loss_scope,
-                                                            weight=10.0)
+                                                            weight=30.0)
         tf.scalar_summary('losses/autoencoder loss (generator)', gen_ae_loss)
         losses_gen = slim.losses.get_losses(gen_loss_scope)
         losses_gen += slim.losses.get_regularization_losses(gen_loss_scope)
-        gen_loss = math_ops.add_n(losses_gen, name='gen_total_loss')
-        return gen_loss
+        ae_loss = math_ops.add_n(losses_gen, name='gen_total_loss')
+
+        vp_loss = self.vp_loss(vp_out, target_vp, scope='gen_vp')
+        disc_loss = self.discriminator_loss(disc_out, disc_labels, scope='gen_disc')
+        return ae_loss+vp_loss+disc_loss
 
     def make_train_op(self, loss, vars2train=None, scope=None):
         if scope:
@@ -162,17 +168,20 @@ class VPNetTrainer:
             with self.graph.as_default():
                 imgs1, vps1, imgs2, vps2 = self.get_train_batch()
 
-                # Get labels for discriminator training
-                labels_disc = self.model.disc_labels()
-                labels_gen = self.model.gen_labels()
+                # Get labels
+                labels_real, labels_fake = self.model.disc_labels()
+                labels_vp = self.model.vp_label(self, vps1, vps2)
 
-                # Create the model
-                dec_im1, dec_im2, dec_ed1, dec_ed2, disc_out1, disc_out2 = \
+                dec_im1, dec_im2, dec_ed1, dec_ed2, class_out_real, class_out_fake, disc_out_real, disc_out_fake = \
                     self.model.net(imgs1, imgs2, vps1, vps2, reuse=None, training=True)
 
                 # Compute losses
-                disc_loss = self.discriminator_loss(disc_out1, disc_out2, labels_disc)
-                gen_loss = self.generator_loss(imgs1, dec_ed1, imgs2, dec_ed2, disc_out1, disc_out2,  labels_gen)
+                vp_loss = self.vp_loss(class_out_real, labels_vp)
+                disc_loss_fake = self.discriminator_loss(disc_out_fake, labels_fake, scope='disc_loss_fake')
+                disc_loss_real = self.discriminator_loss(disc_out_real, labels_real, scope='disc_loss_real')
+                disc_loss = disc_loss_fake+disc_loss_real
+                gen_loss = self.generator_loss(imgs1, dec_ed1, imgs2, dec_ed2, class_out_fake, labels_vp, disc_out_fake,
+                                               labels_real)
 
                 # Handle dependencies with update_ops (batch-norm)
                 update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -180,6 +189,7 @@ class VPNetTrainer:
                     updates = tf.group(*update_ops)
                     gen_loss = control_flow_ops.with_dependencies([updates], gen_loss)
                     disc_loss = control_flow_ops.with_dependencies([updates], disc_loss)
+                    vp_loss = control_flow_ops.with_dependencies([updates], vp_loss)
 
                 # Make summaries
                 self.make_summaries()
@@ -187,10 +197,11 @@ class VPNetTrainer:
 
                 # Generator training operations
                 train_op_gen = self.make_train_op(gen_loss, scope='encoder, decoder, transformer')
+                train_op_vp = self.make_train_op(vp_loss, scope='vp_regressor')
                 train_op_disc = self.make_train_op(disc_loss, scope='discriminator')
 
                 # Start training
-                slim.learning.train(train_op_gen + train_op_disc, self.get_save_dir(),
+                slim.learning.train(train_op_gen + train_op_vp + train_op_disc, self.get_save_dir(),
                                     save_summaries_secs=600,
                                     save_interval_secs=3000,
                                     log_every_n_steps=100,
