@@ -21,6 +21,7 @@ with tf.Session() as sess:
 
     # Preprocess data
     img_processed = preprocessor.process_train(img, box, im_size)
+    img = tf.image.resize_bilinear(img, [96, 96], align_corners=False)
     imgs, imgs_processed = tf.train.batch([img, img_processed], batch_size=bs, num_threads=1)
 
     names_to_values, names_to_updates = slim.metrics.aggregate_metric_map({
