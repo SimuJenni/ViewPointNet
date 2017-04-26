@@ -85,7 +85,7 @@ class VPNetTrainer:
         disc_total_loss = math_ops.add_n(losses_disc, name='disc_total_loss')
 
         # Compute accuracy
-        predictions = tf.round(disc_out1)
+        predictions = tf.to_float(tf.round(disc_out1))
         tf.scalar_summary('accuracy/discriminator accuracy',
                           slim.metrics.accuracy(predictions, disc_labels))
         return disc_total_loss
