@@ -85,7 +85,7 @@ class VPNet:
         dec_im1 = self.decoder(enc_im1, reuse=reuse, training=training)
         dec_im2 = self.decoder(enc_im2, reuse=True, training=training)
 
-        enc_dec1 = self.encoder(dec_im1, reuse=True, training=training) #TODO: Maybe set training to False in one usage
+        enc_dec1 = self.encoder(dec_im1, reuse=True, training=training)     #TODO: Maybe set training to False in one usage
         enc_dec2 = self.encoder(dec_im2, reuse=True, training=training)
 
         enc_dec1 = self.hidden_transform(enc_dec1, vp1-vp2, reuse=True, training=training)  #TODO: Maybe set training to False in one usage
@@ -187,6 +187,7 @@ class VPNet:
     def hidden_transform2(self, net, d_vp, reuse=None, training=True):
         with tf.variable_scope('transformer', reuse=reuse):
             with slim.arg_scope(vpnet_argscope(training=training, center=False)):
+
                 in_shape = net.get_shape().as_list()
                 net = slim.flatten(net)
                 net = merge(net, d_vp, dim=1)
